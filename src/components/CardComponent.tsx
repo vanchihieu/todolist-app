@@ -1,5 +1,4 @@
-/* eslint-disable prettier/prettier */
-import {View, Text, StyleProp, ViewStyle} from 'react-native';
+import {View, StyleProp, ViewStyle} from 'react-native';
 import React, {ReactNode} from 'react';
 import {globalStyles} from '../styles/globalStyles';
 
@@ -10,7 +9,6 @@ interface Props {
 }
 
 const CardComponent = (props: Props) => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const {children, bgColor, styles} = props;
 
   return (

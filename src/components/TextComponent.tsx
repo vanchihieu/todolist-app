@@ -1,5 +1,4 @@
-/* eslint-disable prettier/prettier */
-import {Text, StyleProp, TextStyle} from 'react-native';
+import {View, Text, StyleProp, TextStyle} from 'react-native';
 import React from 'react';
 import {globalStyles} from '../styles/globalStyles';
 import {fontFamilies} from '../constants/fontFamilies';

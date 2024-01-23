@@ -1,5 +1,4 @@
-/* eslint-disable prettier/prettier */
-import {View, TouchableOpacity, StyleProp, ViewStyle} from 'react-native';
+import {View, Text, TouchableOpacity, StyleProp, ViewStyle} from 'react-native';
 import React, {ReactNode} from 'react';
 import {globalStyles} from '../styles/globalStyles';
 

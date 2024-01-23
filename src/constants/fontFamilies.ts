@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 export const fontFamilies = {
   regular: 'NunitoSans_10pt-Regular',
   medium: 'NunitoSans_10pt-Medium',

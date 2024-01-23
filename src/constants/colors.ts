@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 export const colors = {
   bgColor: '#171719',
   gray: '#222329',
