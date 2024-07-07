@@ -1,33 +1,61 @@
+import firestore from '@react-native-firebase/firestore';
 import React, {useEffect, useState} from 'react';
-import {Button, View} from 'react-native';
+import {Alert, Button, View} from 'react-native';
+import ButtonComponent from '../../components/ButtonComponent';
 import Container from '../../components/Container';
 import DateTimePickerComponent from '../../components/DateTimePickerComponent';
+import DropdownPicker from '../../components/DropdownPicker';
 import InputComponent from '../../components/InputComponent';
 import RowComponent from '../../components/RowComponent';
 import SectionComponent from '../../components/SectionComponent';
 import SpaceComponent from '../../components/SpaceComponent';
-import {TaskModel} from '../../models/TaskModel';
-import DropdownPicker from '../../components/DropdownPicker';
+import TextComponent from '../../components/TextComponent';
+import {fontFamilies} from '../../constants/fontFamilies';
 import {SelectModel} from '../../models/SelectModel';
-import firestore from '@react-native-firebase/firestore';
+import {Attachment, TaskModel} from '../../models/TaskModel';
+import auth from '@react-native-firebase/auth';
+import UploadFileComponent from '../../components/UploadFileComponent';
+import {HandleNotification} from '../../utils/HandleNotification';
 
 const initValue: TaskModel = {
   title: '',
   desctiption: '',
-  dueDate: new Date(),
-  start: new Date(),
-  end: new Date(),
+  dueDate: undefined,
+  start: undefined,
+  end: undefined,
   uids: [],
-  fileUrls: [],
+  attachments: [],
+  createdAt: Date.now(),
+  updatedAt: Date.now(),
+  isUrgent: false,
 };
 
-const AddNewTask = ({navigation}: any) => {
+const AddNewTask = ({navigation, route}: any) => {
+  const {editable, task}: {editable: boolean; task?: TaskModel} = route.params;
+
   const [taskDetail, setTaskDetail] = useState<TaskModel>(initValue);
   const [usersSelect, setUsersSelect] = useState<SelectModel[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  const user = auth().currentUser;
 
   useEffect(() => {
     handleGetAllUsers();
   }, []);
+
+  useEffect(() => {
+    user && setTaskDetail({...taskDetail, uids: [user.uid]});
+  }, [taskDetail, user]);
+
+  useEffect(() => {
+    task &&
+      setTaskDetail({
+        ...taskDetail,
+        title: task.title,
+        desctiption: task.desctiption,
+        uids: task.uids,
+      });
+  }, [task, taskDetail]);
 
   const handleGetAllUsers = async () => {
     await firestore()
@@ -35,14 +63,13 @@ const AddNewTask = ({navigation}: any) => {
       .get()
       .then(snap => {
         if (snap.empty) {
-          // eslint-disable-next-line quotes
           console.log(`users data not found`);
         } else {
           const items: SelectModel[] = [];
 
           snap.forEach(item => {
             items.push({
-              label: item.data().name,
+              label: item.data().displayName,
               value: item.id,
             });
           });
@@ -64,7 +91,55 @@ const AddNewTask = ({navigation}: any) => {
   };
 
   const handleAddNewTask = async () => {
-    console.log(taskDetail);
+    if (user) {
+      const data = {
+        ...taskDetail,
+        attachments,
+        createdAt: task ? task.createdAt : Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      if (task) {
+        await firestore()
+          .doc(`tasks/${task.id}`)
+          .update(data)
+          .then(() => {
+            if (usersSelect.length > 0) {
+              usersSelect.forEach(member => {
+                member.value !== user.uid &&
+                  HandleNotification.SendNotification({
+                    title: 'Update task',
+                    body: `Your task updated by ${user?.email}`,
+                    taskId: task?.id ?? '',
+                    memberId: member.value,
+                  });
+              });
+            }
+            navigation.goBack();
+          });
+      } else {
+        await firestore()
+          .collection('tasks')
+          .add(data)
+          .then(snap => {
+            if (usersSelect.length > 0) {
+              usersSelect.forEach(member => {
+                member.value !== user.uid &&
+                  HandleNotification.SendNotification({
+                    title: 'New task',
+                    body: `You have a new task asign by ${user?.email}`,
+                    taskId: snap.id,
+                    memberId: member.value,
+                  });
+              });
+            }
+            navigation.goBack();
+          })
+          .catch(error => console.log(error));
+      }
+    } else {
+      Alert.alert('You not login!!!');
+    }
   };
 
   return (
@@ -122,9 +197,39 @@ const AddNewTask = ({navigation}: any) => {
           title="Members"
           multible
         />
+
+        <View>
+          <RowComponent
+            styles={{
+              alignItems: 'center',
+              justifyContent: 'flex-start',
+            }}>
+            <TextComponent
+              text="Attachments"
+              flex={0}
+              font={fontFamilies.bold}
+              size={16}
+            />
+            <SpaceComponent width={8} />
+            <UploadFileComponent
+              onUpload={file => file && setAttachments([...attachments, file])}
+            />
+          </RowComponent>
+          {attachments.length > 0 &&
+            attachments.map((item, index) => (
+              <RowComponent
+                key={`attachment${index}`}
+                styles={{paddingVertical: 12}}>
+                <TextComponent text={item.name ?? ''} />
+              </RowComponent>
+            ))}
+        </View>
       </SectionComponent>
       <SectionComponent>
-        <Button title="Save" onPress={handleAddNewTask} />
+        <ButtonComponent
+          text={task ? 'Update' : 'Save'}
+          onPress={handleAddNewTask}
+        />
       </SectionComponent>
     </Container>
   );
